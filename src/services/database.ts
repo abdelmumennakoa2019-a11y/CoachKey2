@@ -5,12 +5,12 @@ import type { User, Workout, Meal, Message, ProgressEntry, DatabaseConfig } from
 
 // Database configuration placeholder
 const DB_CONFIG: DatabaseConfig = {
-  host: process.env.REACT_APP_DB_HOST || 'localhost',
-  port: parseInt(process.env.REACT_APP_DB_PORT || '5432'),
-  database: process.env.REACT_APP_DB_NAME || 'fitness_app',
-  username: process.env.REACT_APP_DB_USER || 'postgres',
-  password: process.env.REACT_APP_DB_PASSWORD || '',
-  ssl: process.env.NODE_ENV === 'production',
+  host: import.meta.env.VITE_DB_HOST || 'localhost',
+  port: parseInt(import.meta.env.VITE_DB_PORT || '5432'),
+  database: import.meta.env.VITE_DB_NAME || 'fitness_app',
+  username: import.meta.env.VITE_DB_USER || 'postgres',
+  password: import.meta.env.VITE_DB_PASSWORD || '',
+  ssl: import.meta.env.PROD,
 };
 
 // Database connection placeholder
