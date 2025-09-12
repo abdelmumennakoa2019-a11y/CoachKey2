@@ -187,7 +187,7 @@ function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<AppSettings>(saved);
   const [effectiveTheme, setEffectiveTheme] = useState<'light' | 'dark'>('light');
 
-  useEffect(() => { save("settings", settings); }, [settings]);
+  useEffect(() => save("settings", settings), [settings]);
 
   useEffect(() => {
     if (settings.theme !== 'auto') {
@@ -868,4 +868,1576 @@ function ClientsPage() {
             value={newClient.name}
             onChange={(e) => setNewClient({ ...newClient, name: e.target.value })}
             placeholder="Enter client's full name"
-            
+            required
+          />
+          <Input
+            label="Email Address *"
+            type="email"
+            value={newClient.email}
+            onChange={(e) => setNewClient({ ...newClient, email: e.target.value })}
+            placeholder="client@example.com"
+            required
+          />
+          <Input
+            label="Phone Number"
+            type="tel"
+            value={newClient.phone}
+            onChange={(e) => setNewClient({ ...newClient, phone: e.target.value })}
+            placeholder="+1 (555) 123-4567"
+          />
+          <div className="flex gap-3 pt-4">
+            <Button onClick={handleAddClient} className="flex-1">Send Invitation</Button>
+            <Button variant="secondary" onClick={() => setShowAddClient(false)} className="flex-1">Cancel</Button>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
+/* -------------------- Workouts Page -------------------- */
+function WorkoutsPage() {
+  const { appData, addWorkout, updateWorkout, deleteWorkout } = useData();
+  const { push } = useToast();
+  const [showCreateWorkout, setShowCreateWorkout] = useState(false);
+  const [editingWorkout, setEditingWorkout] = useState<Workout | null>(null);
+  const [newWorkout, setNewWorkout] = useState({
+    name: '',
+    exercises: [] as WorkoutExercise[]
+  });
+  const [newExercise, setNewExercise] = useState({
+    name: '',
+    sets: 3,
+    reps: 10,
+    weight: 0
+  });
+
+  const workouts = appData.workouts || [];
+
+  const handleCreateWorkout = () => {
+    if (!newWorkout.name) {
+      push("Please enter a workout name", { type: "error" });
+      return;
+    }
+    if (newWorkout.exercises.length === 0) {
+      push("Please add at least one exercise", { type: "error" });
+      return;
+    }
+
+    addWorkout(newWorkout);
+    push("Workout created successfully", { type: "success" });
+    setNewWorkout({ name: '', exercises: [] });
+    setShowCreateWorkout(false);
+  };
+
+  const handleAddExercise = () => {
+    if (!newExercise.name) {
+      push("Please enter exercise name", { type: "error" });
+      return;
+    }
+
+    const exercise: WorkoutExercise = {
+      id: uid(),
+      ...newExercise
+    };
+
+    setNewWorkout(prev => ({
+      ...prev,
+      exercises: [...prev.exercises, exercise]
+    }));
+
+    setNewExercise({ name: '', sets: 3, reps: 10, weight: 0 });
+  };
+
+  const handleCompleteWorkout = (workoutId: string) => {
+    updateWorkout(workoutId, { completed: true });
+    push("Workout completed! Great job! 💪", { type: "success" });
+  };
+
+  const handleDeleteWorkout = (workoutId: string) => {
+    deleteWorkout(workoutId);
+    push("Workout deleted", { type: "success" });
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-[var(--foreground)]">Workouts</h2>
+        <Button onClick={() => setShowCreateWorkout(true)}>Create Workout</Button>
+      </div>
+
+      {workouts.length > 0 ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {workouts.map((workout: Workout) => (
+            <Card key={workout.id}>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-[var(--foreground)]">{workout.name}</h3>
+                  <div className="text-sm text-[var(--muted-foreground)]">
+                    {new Date(workout.date).toLocaleDateString()} • {workout.exercises.length} exercises
+                  </div>
+                </div>
+                <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+                  workout.completed 
+                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                    : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                }`}>
+                  {workout.completed ? 'Completed' : 'Pending'}
+                </div>
+              </div>
+
+              <div className="space-y-2 mb-4">
+                {workout.exercises.slice(0, 3).map((exercise: WorkoutExercise) => (
+                  <div key={exercise.id} className="flex items-center justify-between p-2 bg-[var(--secondary)] rounded">
+                    <span className="text-[var(--foreground)]">{exercise.name}</span>
+                    <span className="text-sm text-[var(--muted-foreground)]">
+                      {exercise.sets} × {exercise.reps} {exercise.weight ? `@ ${exercise.weight}kg` : ''}
+                    </span>
+                  </div>
+                ))}
+                {workout.exercises.length > 3 && (
+                  <div className="text-center text-sm text-[var(--muted-foreground)]">
+                    +{workout.exercises.length - 3} more exercises
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                {!workout.completed && (
+                  <Button size="sm" onClick={() => handleCompleteWorkout(workout.id)} className="flex-1">
+                    Complete Workout
+                  </Button>
+                )}
+                <Button size="sm" variant="secondary" onClick={() => setEditingWorkout(workout)} className="flex-1">
+                  View Details
+                </Button>
+                <Button size="sm" variant="danger" onClick={() => handleDeleteWorkout(workout.id)}>
+                  Delete
+                </Button>
+              </div>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <Card>
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">💪</div>
+            <h3 className="text-xl font-semibold text-[var(--foreground)] mb-2">No workouts yet</h3>
+            <p className="text-[var(--muted-foreground)] mb-6">Create your first workout to get started</p>
+            <Button onClick={() => setShowCreateWorkout(true)}>Create Your First Workout</Button>
+          </div>
+        </Card>
+      )}
+
+      {/* Create Workout Modal */}
+      <Modal isOpen={showCreateWorkout} onClose={() => setShowCreateWorkout(false)} title="Create New Workout">
+        <div className="space-y-6">
+          <Input
+            label="Workout Name *"
+            value={newWorkout.name}
+            onChange={(e) => setNewWorkout({ ...newWorkout, name: e.target.value })}
+            placeholder="e.g., Upper Body Strength"
+            required
+          />
+
+          <div>
+            <h4 className="font-medium text-[var(--foreground)] mb-3">Add Exercises</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+              <Input
+                label="Exercise Name"
+                value={newExercise.name}
+                onChange={(e) => setNewExercise({ ...newExercise, name: e.target.value })}
+                placeholder="e.g., Push-ups"
+              />
+              <Input
+                label="Sets"
+                type="number"
+                value={newExercise.sets}
+                onChange={(e) => setNewExercise({ ...newExercise, sets: parseInt(e.target.value) || 0 })}
+              />
+              <Input
+                label="Reps"
+                type="number"
+                value={newExercise.reps}
+                onChange={(e) => setNewExercise({ ...newExercise, reps: parseInt(e.target.value) || 0 })}
+              />
+              <Input
+                label="Weight (kg)"
+                type="number"
+                value={newExercise.weight}
+                onChange={(e) => setNewExercise({ ...newExercise, weight: parseInt(e.target.value) || 0 })}
+              />
+            </div>
+            <Button size="sm" variant="secondary" onClick={handleAddExercise} className="w-full">
+              Add Exercise
+            </Button>
+          </div>
+
+          {newWorkout.exercises.length > 0 && (
+            <div>
+              <h4 className="font-medium text-[var(--foreground)] mb-3">Exercises ({newWorkout.exercises.length})</h4>
+              <div className="space-y-2 max-h-40 overflow-y-auto">
+                {newWorkout.exercises.map((exercise, index) => (
+                  <div key={exercise.id} className="flex items-center justify-between p-2 bg-[var(--secondary)] rounded">
+                    <span className="text-[var(--foreground)]">{exercise.name}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-[var(--muted-foreground)]">
+                        {exercise.sets} × {exercise.reps} {exercise.weight ? `@ ${exercise.weight}kg` : ''}
+                      </span>
+                      <button
+                        onClick={() => setNewWorkout(prev => ({
+                          ...prev,
+                          exercises: prev.exercises.filter((_, i) => i !== index)
+                        }))}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-4">
+            <Button onClick={handleCreateWorkout} className="flex-1">Create Workout</Button>
+            <Button variant="secondary" onClick={() => setShowCreateWorkout(false)} className="flex-1">Cancel</Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Workout Details Modal */}
+      <Modal 
+        isOpen={!!editingWorkout} 
+        onClose={() => setEditingWorkout(null)} 
+        title={editingWorkout?.name || "Workout Details"}
+      >
+        {editingWorkout && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="text-[var(--muted-foreground)]">Date:</span>
+                <div className="font-medium text-[var(--foreground)]">{new Date(editingWorkout.date).toLocaleDateString()}</div>
+              </div>
+              <div>
+                <span className="text-[var(--muted-foreground)]">Status:</span>
+                <div className={`font-medium ${editingWorkout.completed ? 'text-green-600' : 'text-yellow-600'}`}>
+                  {editingWorkout.completed ? 'Completed' : 'Pending'}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="font-medium text-[var(--foreground)] mb-3">Exercises</h4>
+              <div className="space-y-2">
+                {editingWorkout.exercises.map((exercise: WorkoutExercise) => (
+                  <div key={exercise.id} className="p-3 bg-[var(--secondary)] rounded-lg">
+                    <div className="font-medium text-[var(--foreground)]">{exercise.name}</div>
+                    <div className="text-sm text-[var(--muted-foreground)]">
+                      {exercise.sets} sets × {exercise.reps} reps
+                      {exercise.weight && ` @ ${exercise.weight}kg`}
+                    </div>
+                    {exercise.notes && (
+                      <div className="text-sm text-[var(--muted-foreground)] mt-1">Notes: {exercise.notes}</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {!editingWorkout.completed && (
+              <Button 
+                onClick={() => {
+                  handleCompleteWorkout(editingWorkout.id);
+                  setEditingWorkout(null);
+                }} 
+                className="w-full"
+              >
+                Mark as Completed
+              </Button>
+            )}
+          </div>
+        )}
+      </Modal>
+    </div>
+  );
+}
+
+/* -------------------- Progress Page -------------------- */
+function ProgressPage() {
+  const { appData, addProgressEntry, updateProgressEntry, deleteProgressEntry } = useData();
+  const { push } = useToast();
+  const [showAddEntry, setShowAddEntry] = useState(false);
+  const [newEntry, setNewEntry] = useState({
+    weight: '',
+    bodyFat: '',
+    muscle: '',
+    measurements: {
+      chest: '',
+      waist: '',
+      hips: '',
+      arms: '',
+      thighs: ''
+    },
+    notes: ''
+  });
+
+  const progressEntries = appData.progress || [];
+
+  const handleAddEntry = () => {
+    const entry: Partial<ProgressEntry> = {
+      weight: newEntry.weight ? parseFloat(newEntry.weight) : undefined,
+      bodyFat: newEntry.bodyFat ? parseFloat(newEntry.bodyFat) : undefined,
+      muscle: newEntry.muscle ? parseFloat(newEntry.muscle) : undefined,
+      measurements: {
+        chest: newEntry.measurements.chest ? parseFloat(newEntry.measurements.chest) : undefined,
+        waist: newEntry.measurements.waist ? parseFloat(newEntry.measurements.waist) : undefined,
+        hips: newEntry.measurements.hips ? parseFloat(newEntry.measurements.hips) : undefined,
+        arms: newEntry.measurements.arms ? parseFloat(newEntry.measurements.arms) : undefined,
+        thighs: newEntry.measurements.thighs ? parseFloat(newEntry.measurements.thighs) : undefined,
+      },
+      notes: newEntry.notes || undefined
+    };
+
+    // Remove undefined values
+    Object.keys(entry.measurements!).forEach(key => {
+      if (entry.measurements![key as keyof typeof entry.measurements] === undefined) {
+        delete entry.measurements![key as keyof typeof entry.measurements];
+      }
+    });
+
+    if (Object.keys(entry.measurements!).length === 0) {
+      delete entry.measurements;
+    }
+
+    addProgressEntry(entry);
+    push("Progress entry added successfully", { type: "success" });
+    setNewEntry({
+      weight: '',
+      bodyFat: '',
+      muscle: '',
+      measurements: { chest: '', waist: '', hips: '', arms: '', thighs: '' },
+      notes: ''
+    });
+    setShowAddEntry(false);
+  };
+
+  const chartData = useMemo(() => {
+    return progressEntries
+      .slice()
+      .reverse()
+      .map((entry: ProgressEntry) => ({
+        date: new Date(entry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        weight: entry.weight || null,
+        bodyFat: entry.bodyFat || null,
+        muscle: entry.muscle || null
+      }));
+  }, [progressEntries]);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-[var(--foreground)]">Progress Tracking</h2>
+        <Button onClick={() => setShowAddEntry(true)}>Add Entry</Button>
+      </div>
+
+      {progressEntries.length > 0 ? (
+        <>
+          {/* Progress Charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card title="Weight & Body Composition">
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis dataKey="date" stroke="var(--muted-foreground)" />
+                  <YAxis stroke="var(--muted-foreground)" />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'var(--card)', 
+                      border: '1px solid var(--border)',
+                      borderRadius: '8px',
+                      color: 'var(--foreground)'
+                    }} 
+                  />
+                  <Line type="monotone" dataKey="weight" stroke="var(--primary)" name="Weight (kg)" strokeWidth={2} />
+                  <Line type="monotone" dataKey="bodyFat" stroke="#f59e0b" name="Body Fat (%)" strokeWidth={2} />
+                  <Line type="monotone" dataKey="muscle" stroke="#10b981" name="Muscle (kg)" strokeWidth={2} />
+                </LineChart>
+              </ResponsiveContainer>
+            </Card>
+
+            <Card title="Latest Measurements">
+              {progressEntries[0]?.measurements ? (
+                <div className="space-y-3">
+                  {Object.entries(progressEntries[0].measurements).map(([key, value]) => (
+                    <div key={key} className="flex justify-between items-center">
+                      <span className="text-[var(--muted-foreground)] capitalize">{key}:</span>
+                      <span className="font-medium text-[var(--foreground)]">{value} cm</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-[var(--muted-foreground)]">
+                  <div className="text-4xl mb-2">📏</div>
+                  <div>No measurements recorded yet</div>
+                </div>
+              )}
+            </Card>
+          </div>
+
+          {/* Progress Entries List */}
+          <Card title="Progress History">
+            <div className="space-y-4">
+              {progressEntries.slice(0, 5).map((entry: ProgressEntry) => (
+                <div key={entry.id} className="p-4 bg-[var(--secondary)] rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="font-medium text-[var(--foreground)]">
+                      {new Date(entry.date).toLocaleDateString('en-US', { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                      })}
+                    </div>
+                    <Button size="sm" variant="danger" onClick={() => deleteProgressEntry(entry.id)}>
+                      Delete
+                    </Button>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                    {entry.weight && (
+                      <div>
+                        <span className="text-[var(--muted-foreground)]">Weight:</span>
+                        <div className="font-medium text-[var(--foreground)]">{entry.weight} kg</div>
+                      </div>
+                    )}
+                    {entry.bodyFat && (
+                      <div>
+                        <span className="text-[var(--muted-foreground)]">Body Fat:</span>
+                        <div className="font-medium text-[var(--foreground)]">{entry.bodyFat}%</div>
+                      </div>
+                    )}
+                    {entry.muscle && (
+                      <div>
+                        <span className="text-[var(--muted-foreground)]">Muscle:</span>
+                        <div className="font-medium text-[var(--foreground)]">{entry.muscle} kg</div>
+                      </div>
+                    )}
+                  </div>
+
+                  {entry.notes && (
+                    <div className="mt-2 text-sm text-[var(--muted-foreground)]">
+                      <strong>Notes:</strong> {entry.notes}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </Card>
+        </>
+      ) : (
+        <Card>
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">📊</div>
+            <h3 className="text-xl font-semibold text-[var(--foreground)] mb-2">Start tracking your progress</h3>
+            <p className="text-[var(--muted-foreground)] mb-6">Record your measurements, weight, and body composition to see your fitness journey</p>
+            <Button onClick={() => setShowAddEntry(true)}>Add Your First Entry</Button>
+          </div>
+        </Card>
+      )}
+
+      {/* Add Progress Entry Modal */}
+      <Modal isOpen={showAddEntry} onClose={() => setShowAddEntry(false)} title="Add Progress Entry">
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Input
+              label="Weight (kg)"
+              type="number"
+              value={newEntry.weight}
+              onChange={(e) => setNewEntry({ ...newEntry, weight: e.target.value })}
+              placeholder="70.5"
+            />
+            <Input
+              label="Body Fat (%)"
+              type="number"
+              value={newEntry.bodyFat}
+              onChange={(e) => setNewEntry({ ...newEntry, bodyFat: e.target.value })}
+              placeholder="15.2"
+            />
+            <Input
+              label="Muscle Mass (kg)"
+              type="number"
+              value={newEntry.muscle}
+              onChange={(e) => setNewEntry({ ...newEntry, muscle: e.target.value })}
+              placeholder="45.8"
+            />
+          </div>
+
+          <div>
+            <h4 className="font-medium text-[var(--foreground)] mb-3">Body Measurements (cm)</h4>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <Input
+                label="Chest"
+                type="number"
+                value={newEntry.measurements.chest}
+                onChange={(e) => setNewEntry({ 
+                  ...newEntry, 
+                  measurements: { ...newEntry.measurements, chest: e.target.value }
+                })}
+                placeholder="100"
+              />
+              <Input
+                label="Waist"
+                type="number"
+                value={newEntry.measurements.waist}
+                onChange={(e) => setNewEntry({ 
+                  ...newEntry, 
+                  measurements: { ...newEntry.measurements, waist: e.target.value }
+                })}
+                placeholder="80"
+              />
+              <Input
+                label="Hips"
+                type="number"
+                value={newEntry.measurements.hips}
+                onChange={(e) => setNewEntry({ 
+                  ...newEntry, 
+                  measurements: { ...newEntry.measurements, hips: e.target.value }
+                })}
+                placeholder="95"
+              />
+              <Input
+                label="Arms"
+                type="number"
+                value={newEntry.measurements.arms}
+                onChange={(e) => setNewEntry({ 
+                  ...newEntry, 
+                  measurements: { ...newEntry.measurements, arms: e.target.value }
+                })}
+                placeholder="35"
+              />
+              <Input
+                label="Thighs"
+                type="number"
+                value={newEntry.measurements.thighs}
+                onChange={(e) => setNewEntry({ 
+                  ...newEntry, 
+                  measurements: { ...newEntry.measurements, thighs: e.target.value }
+                })}
+                placeholder="55"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-[var(--foreground)] mb-1">Notes</label>
+            <textarea
+              value={newEntry.notes}
+              onChange={(e) => setNewEntry({ ...newEntry, notes: e.target.value })}
+              placeholder="Any additional notes about your progress..."
+              className="w-full p-2 border border-[var(--input)] rounded-lg bg-[var(--card)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent transition-all duration-200 resize-none"
+              rows={3}
+            />
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <Button onClick={handleAddEntry} className="flex-1">Add Entry</Button>
+            <Button variant="secondary" onClick={() => setShowAddEntry(false)} className="flex-1">Cancel</Button>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
+/* -------------------- Stats Page -------------------- */
+function StatsPage() {
+  const { appData } = useData();
+  const { session, getUser } = useAuth();
+  const user = session ? getUser(session.userId) : null;
+
+  const stats = useMemo(() => {
+    const workouts = appData.workouts || [];
+    const meals = appData.meals || [];
+    const progress = appData.progress || [];
+
+    const completedWorkouts = workouts.filter((w: Workout) => w.completed);
+    const totalWorkouts = workouts.length;
+    const completionRate = totalWorkouts > 0 ? Math.round((completedWorkouts.length / totalWorkouts) * 100) : 0;
+
+    const totalCalories = meals.reduce((sum: number, meal: Meal) => sum + meal.calories, 0);
+    const avgDailyCalories = meals.length > 0 ? Math.round(totalCalories / meals.length) : 0;
+
+    const currentWeight = progress.length > 0 ? progress[0].weight : null;
+    const oldestWeight = progress.length > 1 ? progress[progress.length - 1].weight : null;
+    const weightChange = currentWeight && oldestWeight ? currentWeight - oldestWeight : null;
+
+    // Weekly activity
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      return date.toISOString().split('T')[0];
+    }).reverse();
+
+    const weeklyActivity = last7Days.map(date => {
+      const dayWorkouts = workouts.filter((w: Workout) => w.date === date && w.completed);
+      const dayMeals = meals.filter((m: Meal) => m.date === date);
+      const dayCalories = dayMeals.reduce((sum: number, meal: Meal) => sum + meal.calories, 0);
+      
+      return {
+        date: new Date(date).toLocaleDateString('en-US', { weekday: 'short' }),
+        workouts: dayWorkouts.length,
+        calories: Math.round(dayCalories / 100), // Scale for chart
+        meals: dayMeals.length
+      };
+    });
+
+    // Exercise frequency
+    const exerciseFrequency: { [key: string]: number } = {};
+    completedWorkouts.forEach((workout: Workout) => {
+      workout.exercises.forEach((exercise: WorkoutExercise) => {
+        exerciseFrequency[exercise.name] = (exerciseFrequency[exercise.name] || 0) + 1;
+      });
+    });
+
+    const topExercises = Object.entries(exerciseFrequency)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 5)
+      .map(([name, count]) => ({ name, count }));
+
+    // Meal type distribution
+    const mealTypes = meals.reduce((acc: any, meal: Meal) => {
+      acc[meal.type] = (acc[meal.type] || 0) + 1;
+      return acc;
+    }, {});
+
+    const mealDistribution = Object.entries(mealTypes).map(([type, count]) => ({
+      name: type.charAt(0).toUpperCase() + type.slice(1),
+      value: count as number
+    }));
+
+    return {
+      completedWorkouts: completedWorkouts.length,
+      totalWorkouts,
+      completionRate,
+      totalCalories,
+      avgDailyCalories,
+      currentWeight,
+      weightChange,
+      weeklyActivity,
+      topExercises,
+      mealDistribution,
+      progressEntries: progress.length
+    };
+  }, [appData]);
+
+  const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-[var(--foreground)]">Fitness Statistics</h2>
+        <div className="text-sm text-[var(--muted-foreground)]">
+          Your complete fitness overview
+        </div>
+      </div>
+
+      {/* Key Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="text-center">
+          <div className="text-3xl font-bold text-[var(--primary)] mb-2">{stats.completedWorkouts}</div>
+          <div className="text-sm text-[var(--muted-foreground)]">Workouts Completed</div>
+          <div className="text-xs text-[var(--muted-foreground)] mt-1">
+            {stats.completionRate}% completion rate
+          </div>
+        </Card>
+        
+        <Card className="text-center">
+          <div className="text-3xl font-bold text-green-600 mb-2">{stats.avgDailyCalories}</div>
+          <div className="text-sm text-[var(--muted-foreground)]">Avg Daily Calories</div>
+          <div className="text-xs text-[var(--muted-foreground)] mt-1">
+            {stats.totalCalories.toLocaleString()} total logged
+          </div>
+        </Card>
+
+        <Card className="text-center">
+          <div className="text-3xl font-bold text-purple-600 mb-2">{stats.progressEntries}</div>
+          <div className="text-sm text-[var(--muted-foreground)]">Progress Entries</div>
+          {stats.currentWeight && (
+            <div className="text-xs text-[var(--muted-foreground)] mt-1">
+              Current: {stats.currentWeight}kg
+            </div>
+          )}
+        </Card>
+
+        <Card className="text-center">
+          <div className={`text-3xl font-bold mb-2 ${stats.weightChange && stats.weightChange > 0 ? 'text-green-600' : stats.weightChange && stats.weightChange < 0 ? 'text-red-600' : 'text-gray-600'}`}>
+            {stats.weightChange ? `${stats.weightChange > 0 ? '+' : ''}${stats.weightChange.toFixed(1)}kg` : 'N/A'}
+          </div>
+          <div className="text-sm text-[var(--muted-foreground)]">Weight Change</div>
+          <div className="text-xs text-[var(--muted-foreground)] mt-1">
+            Since first entry
+          </div>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Weekly Activity */}
+        <Card title="Weekly Activity">
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={stats.weeklyActivity}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <XAxis dataKey="date" stroke="var(--muted-foreground)" />
+              <YAxis stroke="var(--muted-foreground)" />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'var(--card)', 
+                  border: '1px solid var(--border)',
+                  borderRadius: '8px',
+                  color: 'var(--foreground)'
+                }} 
+              />
+              <Bar dataKey="workouts" fill="var(--primary)" name="Workouts" />
+              <Bar dataKey="meals" fill="#10b981" name="Meals" />
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+
+        {/* Meal Distribution */}
+        <Card title="Meal Type Distribution">
+          {stats.mealDistribution.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={stats.mealDistribution}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {stats.mealDistribution.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'var(--card)', 
+                    border: '1px solid var(--border)',
+                    borderRadius: '8px',
+                    color: 'var(--foreground)'
+                  }} 
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="text-center py-12 text-[var(--muted-foreground)]">
+              <div className="text-4xl mb-2">🍽️</div>
+              <div>No meals logged yet</div>
+            </div>
+          )}
+        </Card>
+      </div>
+
+      {/* Top Exercises */}
+      <Card title="Most Performed Exercises">
+        {stats.topExercises.length > 0 ? (
+          <div className="space-y-3">
+            {stats.topExercises.map((exercise, index) => (
+              <div key={exercise.name} className="flex items-center justify-between p-3 bg-[var(--secondary)] rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-[var(--primary)] text-white rounded-full flex items-center justify-center text-sm font-bold">
+                    {index + 1}
+                  </div>
+                  <span className="font-medium text-[var(--foreground)]">{exercise.name}</span>
+                </div>
+                <div className="text-[var(--muted-foreground)]">
+                  {exercise.count} times
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-[var(--muted-foreground)]">
+            <div className="text-4xl mb-2">💪</div>
+            <div>Complete some workouts to see your top exercises</div>
+          </div>
+        )}
+      </Card>
+
+      {/* Achievement Badges */}
+      <Card title="Achievements">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className={`text-center p-4 rounded-lg ${stats.completedWorkouts >= 1 ? 'bg-green-100 dark:bg-green-900' : 'bg-gray-100 dark:bg-gray-800'}`}>
+            <div className="text-2xl mb-2">🏃‍♂️</div>
+            <div className="text-sm font-medium">First Workout</div>
+            <div className="text-xs text-[var(--muted-foreground)]">Complete 1 workout</div>
+          </div>
+          
+          <div className={`text-center p-4 rounded-lg ${stats.completedWorkouts >= 10 ? 'bg-green-100 dark:bg-green-900' : 'bg-gray-100 dark:bg-gray-800'}`}>
+            <div className="text-2xl mb-2">💪</div>
+            <div className="text-sm font-medium">Consistent</div>
+            <div className="text-xs text-[var(--muted-foreground)]">Complete 10 workouts</div>
+          </div>
+          
+          <div className={`text-center p-4 rounded-lg ${stats.progressEntries >= 5 ? 'bg-green-100 dark:bg-green-900' : 'bg-gray-100 dark:bg-gray-800'}`}>
+            <div className="text-2xl mb-2">📊</div>
+            <div className="text-sm font-medium">Progress Tracker</div>
+            <div className="text-xs text-[var(--muted-foreground)]">Log 5 progress entries</div>
+          </div>
+          
+          <div className={`text-center p-4 rounded-lg ${stats.completionRate >= 80 ? 'bg-green-100 dark:bg-green-900' : 'bg-gray-100 dark:bg-gray-800'}`}>
+            <div className="text-2xl mb-2">🎯</div>
+            <div className="text-sm font-medium">High Achiever</div>
+            <div className="text-xs text-[var(--muted-foreground)]">80% completion rate</div>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+/* -------------------- Meals Page -------------------- */
+function MealsPage() {
+  const { appData, logMeal, updateMeal, deleteMeal } = useData();
+  const { push } = useToast();
+  const [showAddMeal, setShowAddMeal] = useState(false);
+  const [newMeal, setNewMeal] = useState({
+    name: '',
+    type: 'breakfast' as 'breakfast' | 'lunch' | 'dinner' | 'snack',
+    calories: '',
+    protein: '',
+    carbs: '',
+    fat: '',
+    notes: ''
+  });
+
+  const meals = appData.meals || [];
+  const today = new Date().toISOString().split('T')[0];
+  const todayMeals = meals.filter((m: Meal) => m.date === today);
+
+  const handleAddMeal = () => {
+    if (!newMeal.name || !newMeal.calories) {
+      push("Please fill in meal name and calories", { type: "error" });
+      return;
+    }
+
+    const meal: Partial<Meal> = {
+      name: newMeal.name,
+      type: newMeal.type,
+      calories: parseInt(newMeal.calories),
+      protein: parseInt(newMeal.protein) || 0,
+      carbs: parseInt(newMeal.carbs) || 0,
+      fat: parseInt(newMeal.fat) || 0,
+      notes: newMeal.notes || undefined
+    };
+
+    logMeal(meal);
+    push("Meal logged successfully", { type: "success" });
+    setNewMeal({
+      name: '',
+      type: 'breakfast',
+      calories: '',
+      protein: '',
+      carbs: '',
+      fat: '',
+      notes: ''
+    });
+    setShowAddMeal(false);
+  };
+
+  const todayTotals = useMemo(() => {
+    return todayMeals.reduce((totals, meal: Meal) => ({
+      calories: totals.calories + meal.calories,
+      protein: totals.protein + meal.protein,
+      carbs: totals.carbs + meal.carbs,
+      fat: totals.fat + meal.fat
+    }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+  }, [todayMeals]);
+
+  const mealsByType = useMemo(() => {
+    const grouped = todayMeals.reduce((acc: any, meal: Meal) => {
+      if (!acc[meal.type]) acc[meal.type] = [];
+      acc[meal.type].push(meal);
+      return acc;
+    }, {});
+
+    return {
+      breakfast: grouped.breakfast || [],
+      lunch: grouped.lunch || [],
+      dinner: grouped.dinner || [],
+      snack: grouped.snack || []
+    };
+  }, [todayMeals]);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-[var(--foreground)]">Nutrition Tracking</h2>
+          <p className="text-[var(--muted-foreground)]">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
+        </div>
+        <Button onClick={() => setShowAddMeal(true)}>Log Meal</Button>
+      </div>
+
+      {/* Daily Totals */}
+      <Card title="Today's Nutrition">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="text-center">
+            <div className="text-2xl font-bold text-[var(--primary)] mb-1">{todayTotals.calories}</div>
+            <div className="text-sm text-[var(--muted-foreground)]">Calories</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-red-600 mb-1">{todayTotals.protein}g</div>
+            <div className="text-sm text-[var(--muted-foreground)]">Protein</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-yellow-600 mb-1">{todayTotals.carbs}g</div>
+            <div className="text-sm text-[var(--muted-foreground)]">Carbs</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-green-600 mb-1">{todayTotals.fat}g</div>
+            <div className="text-sm text-[var(--muted-foreground)]">Fat</div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Meals by Type */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {Object.entries(mealsByType).map(([type, typeMeals]) => (
+          <Card key={type} title={type.charAt(0).toUpperCase() + type.slice(1)}>
+            {(typeMeals as Meal[]).length > 0 ? (
+              <div className="space-y-3">
+                {(typeMeals as Meal[]).map((meal: Meal) => (
+                  <div key={meal.id} className="p-3 bg-[var(--secondary)] rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="font-medium text-[var(--foreground)]">{meal.name}</div>
+                      <Button size="sm" variant="danger" onClick={() => deleteMeal(meal.id)}>
+                        ×
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-sm text-[var(--muted-foreground)]">
+                      <div>Calories: {meal.calories}</div>
+                      <div>Protein: {meal.protein}g</div>
+                      <div>Carbs: {meal.carbs}g</div>
+                      <div>Fat: {meal.fat}g</div>
+                    </div>
+                    {meal.notes && (
+                      <div className="text-sm text-[var(--muted-foreground)] mt-2">
+                        Notes: {meal.notes}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-[var(--muted-foreground)]">
+                <div className="text-3xl mb-2">🍽️</div>
+                <div className="text-sm">No {type} logged</div>
+              </div>
+            )}
+          </Card>
+        ))}
+      </div>
+
+      {/* Recent Meals */}
+      {meals.length > 0 && (
+        <Card title="Recent Meals">
+          <div className="space-y-3">
+            {meals.slice(0, 10).map((meal: Meal) => (
+              <div key={meal.id} className="flex items-center justify-between p-3 bg-[var(--secondary)] rounded-lg">
+                <div>
+                  <div className="font-medium text-[var(--foreground)]">{meal.name}</div>
+                  <div className="text-sm text-[var(--muted-foreground)]">
+                    {new Date(meal.date).toLocaleDateString()} • {meal.type} • {meal.calories} cal
+                  </div>
+                </div>
+                <Button size="sm" variant="danger" onClick={() => deleteMeal(meal.id)}>
+                  Delete
+                </Button>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {/* Add Meal Modal */}
+      <Modal isOpen={showAddMeal} onClose={() => setShowAddMeal(false)} title="Log New Meal">
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input
+              label="Meal Name *"
+              value={newMeal.name}
+              onChange={(e) => setNewMeal({ ...newMeal, name: e.target.value })}
+              placeholder="e.g., Grilled Chicken Salad"
+              required
+            />
+            <Select
+              label="Meal Type"
+              value={newMeal.type}
+              onChange={(e) => setNewMeal({ ...newMeal, type: e.target.value as any })}
+              options={[
+                { value: 'breakfast', label: 'Breakfast' },
+                { value: 'lunch', label: 'Lunch' },
+                { value: 'dinner', label: 'Dinner' },
+                { value: 'snack', label: 'Snack' }
+              ]}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Input
+              label="Calories *"
+              type="number"
+              value={newMeal.calories}
+              onChange={(e) => setNewMeal({ ...newMeal, calories: e.target.value })}
+              placeholder="450"
+              required
+            />
+            <Input
+              label="Protein (g)"
+              type="number"
+              value={newMeal.protein}
+              onChange={(e) => setNewMeal({ ...newMeal, protein: e.target.value })}
+              placeholder="25"
+            />
+            <Input
+              label="Carbs (g)"
+              type="number"
+              value={newMeal.carbs}
+              onChange={(e) => setNewMeal({ ...newMeal, carbs: e.target.value })}
+              placeholder="30"
+            />
+            <Input
+              label="Fat (g)"
+              type="number"
+              value={newMeal.fat}
+              onChange={(e) => setNewMeal({ ...newMeal, fat: e.target.value })}
+              placeholder="15"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-[var(--foreground)] mb-1">Notes</label>
+            <textarea
+              value={newMeal.notes}
+              onChange={(e) => setNewMeal({ ...newMeal, notes: e.target.value })}
+              placeholder="Any additional notes about this meal..."
+              className="w-full p-2 border border-[var(--input)] rounded-lg bg-[var(--card)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent transition-all duration-200 resize-none"
+              rows={3}
+            />
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <Button onClick={handleAddMeal} className="flex-1">Log Meal</Button>
+            <Button variant="secondary" onClick={() => setShowAddMeal(false)} className="flex-1">Cancel</Button>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
+/* -------------------- Chat Page -------------------- */
+function ChatPage() {
+  const { appData, sendMessage, markMessageRead } = useData();
+  const { session, getUser, users } = useAuth();
+  const { push } = useToast();
+  const [newMessage, setNewMessage] = useState('');
+  const [selectedContact, setSelectedContact] = useState<string | null>(null);
+
+  const user = session ? getUser(session.userId) : null;
+  const messages = appData.messages || [];
+
+  // Get potential contacts (trainer-client relationships)
+  const contacts = useMemo(() => {
+    if (!user) return [];
+    
+    if (user.role === 'trainer') {
+      return users.filter(u => u.role === 'client' && u.trainerId === user.id);
+    } else {
+      const trainer = users.find(u => u.id === user.trainerId);
+      return trainer ? [trainer] : [];
+    }
+  }, [user, users]);
+
+  // Get messages for selected contact
+  const contactMessages = useMemo(() => {
+    if (!selectedContact || !user) return [];
+    
+    return messages
+      .filter((m: Message) => 
+        (m.senderId === user.id && m.receiverId === selectedContact) ||
+        (m.senderId === selectedContact && m.receiverId === user.id)
+      )
+      .sort((a: Message, b: Message) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+  }, [messages, selectedContact, user]);
+
+  const handleSendMessage = () => {
+    if (!newMessage.trim() || !selectedContact || !user) {
+      push("Please enter a message", { type: "error" });
+      return;
+    }
+
+    sendMessage({
+      senderId: user.id,
+      receiverId: selectedContact,
+      content: newMessage.trim()
+    });
+
+    setNewMessage('');
+    push("Message sent", { type: "success" });
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-[var(--foreground)]">Messages</h2>
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[600px]">
+        {/* Contacts List */}
+        <Card title="Contacts" className="lg:col-span-1">
+          {contacts.length > 0 ? (
+            <div className="space-y-2">
+              {contacts.map(contact => {
+                const unreadCount = messages.filter((m: Message) => 
+                  m.senderId === contact.id && m.receiverId === user?.id && !m.read
+                ).length;
+
+                return (
+                  <button
+                    key={contact.id}
+                    onClick={() => setSelectedContact(contact.id)}
+                    className={`w-full text-left p-3 rounded-lg transition-all duration-200 ${
+                      selectedContact === contact.id 
+                        ? 'bg-[var(--primary)] text-white' 
+                        : 'bg-[var(--secondary)] hover:bg-[var(--accent)] text-[var(--foreground)]'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-medium">{contact.name}</div>
+                        <div className="text-sm opacity-75">{contact.role}</div>
+                      </div>
+                      {unreadCount > 0 && (
+                        <div className="bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                          {unreadCount}
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-[var(--muted-foreground)]">
+              <div className="text-4xl mb-2">👥</div>
+              <div className="text-sm">No contacts available</div>
+            </div>
+          )}
+        </Card>
+
+        {/* Chat Area */}
+        <Card className="lg:col-span-3 flex flex-col">
+          {selectedContact ? (
+            <>
+              {/* Chat Header */}
+              <div className="flex items-center justify-between pb-4 border-b border-[var(--border)]">
+                <div>
+                  <div className="font-semibold text-[var(--foreground)]">
+                    {contacts.find(c => c.id === selectedContact)?.name}
+                  </div>
+                  <div className="text-sm text-[var(--muted-foreground)]">
+                    {contacts.find(c => c.id === selectedContact)?.role}
+                  </div>
+                </div>
+              </div>
+
+              {/* Messages */}
+              <div className="flex-1 overflow-y-auto py-4 space-y-4 min-h-0">
+                {contactMessages.length > 0 ? (
+                  contactMessages.map((message: Message) => (
+                    <div
+                      key={message.id}
+                      className={`flex ${message.senderId === user?.id ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div
+                        className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                          message.senderId === user?.id
+                            ? 'bg-[var(--primary)] text-white'
+                            : 'bg-[var(--secondary)] text-[var(--foreground)]'
+                        }`}
+                      >
+                        <div className="text-sm">{message.content}</div>
+                        <div className={`text-xs mt-1 ${
+                          message.senderId === user?.id ? 'text-blue-100' : 'text-[var(--muted-foreground)]'
+                        }`}>
+                          {new Date(message.timestamp).toLocaleTimeString('en-US', { 
+                            hour: 'numeric', 
+                            minute: '2-digit' 
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-[var(--muted-foreground)]">
+                    <div className="text-4xl mb-2">💬</div>
+                    <div>No messages yet. Start the conversation!</div>
+                  </div>
+                )}
+              </div>
+
+              {/* Message Input */}
+              <div className="pt-4 border-t border-[var(--border)]">
+                <div className="flex gap-2">
+                  <textarea
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    placeholder="Type your message..."
+                    className="flex-1 p-2 border border-[var(--input)] rounded-lg bg-[var(--card)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent transition-all duration-200 resize-none"
+                    rows={2}
+                  />
+                  <Button onClick={handleSendMessage} disabled={!newMessage.trim()}>
+                    Send
+                  </Button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-[var(--muted-foreground)]">
+              <div className="text-center">
+                <div className="text-6xl mb-4">💬</div>
+                <div className="text-lg">Select a contact to start messaging</div>
+              </div>
+            </div>
+          )}
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+/* -------------------- Settings Page -------------------- */
+function SettingsPage() {
+  const { settings, update } = useSettings();
+  return (
+    <div className="max-w-4xl">
+      <SettingsPanel external={{ settings, update }} />
+    </div>
+  );
+}
+
+/* -------------------- Login Page -------------------- */
+function LoginPage({ onSuccess }: { onSuccess: () => void }) {
+  const { login, register } = useAuth();
+  const { push } = useToast();
+  const [view, setView] = useState<"login" | "register">("login");
+  const [form, setForm] = useState({ 
+    email: "", 
+    password: "", 
+    name: "", 
+    role: "client",
+    phone: ""
+  });
+  const { settings } = useSettings();
+
+  const handleLogin = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    try {
+      const user = login({ email: form.email, password: form.password });
+      push(`Welcome back, ${user.name}!`, { type: "success" });
+      onSuccess();
+    } catch (err: any) {
+      push(err?.message || "Login failed", { type: "error" });
+    }
+  };
+
+  const handleRegister = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!form.name || !form.email || !form.password) {
+      push("Please fill in all required fields", { type: "error" });
+      return;
+    }
+    
+    try {
+      const user = register({ 
+        name: form.name, 
+        email: form.email, 
+        password: form.password, 
+        role: form.role as any,
+        phone: form.phone || undefined
+      });
+      push(`Account created for ${user.name}`, { type: "success" });
+      // auto-login
+      login({ email: form.email, password: form.password });
+      onSuccess();
+    } catch (err: any) {
+      push(err?.message || "Registration failed", { type: "error" });
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[var(--background)] to-[var(--muted)] transition-colors duration-300">
+      <div className={`max-w-4xl w-full grid md:grid-cols-2 gap-6 ${settings.compact ? 'p-3' : 'p-6'}`}>
+        <div className="hidden md:flex flex-col items-center justify-center gap-6 bg-gradient-to-br from-[var(--primary)] to-indigo-600 text-white rounded-lg p-8 transition-all duration-300 ease-in-out hover:scale-105">
+          <LogoPlaceholder size={72} />
+          <div className="text-3xl font-bold">FitnessPro</div>
+          <p className="text-center text-lg opacity-90">Your complete fitness companion for trainers and clients.</p>
+          <div className="text-sm opacity-75 text-center">
+            <div>✓ Track workouts and progress</div>
+            <div>✓ Monitor nutrition and meals</div>
+            <div>✓ Connect with trainers/clients</div>
+            <div>✓ Comprehensive analytics</div>
+          </div>
+        </div>
+
+        <div className={`bg-[var(--card)] rounded-lg shadow-xl border border-[var(--border)] transition-all duration-300 ease-in-out ${settings.compact ? 'p-4' : 'p-8'} ${settings.animations ? 'animate-slide-up' : ''}`}>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold text-[var(--card-foreground)]">
+              {view === "login" ? "Welcome Back" : "Create Account"}
+            </h2>
+            <div className="md:hidden">
+              <LogoPlaceholder size={40} />
+            </div>
+          </div>
+
+          {view === "login" ? (
+            <form onSubmit={handleLogin} className="space-y-4">
+              <Input
+                label="Email Address"
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                placeholder="Enter your email"
+                required
+              />
+              <Input
+                label="Password"
+                type="password"
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                placeholder="Enter your password"
+                required
+              />
+              
+              <div className="text-sm text-[var(--muted-foreground)] bg-[var(--secondary)] p-3 rounded-lg">
+                <div className="font-medium mb-1">Demo Accounts:</div>
+                <div>Trainer: trainer@fit.app / trainer</div>
+                <div>Client: client@fit.app / client</div>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <Button type="submit" className="w-full">
+                  Sign In
+                </Button>
+                <button 
+                  type="button" 
+                  onClick={() => setView("register")} 
+                  className="text-sm text-[var(--primary)] hover:underline transition-colors duration-200"
+                >
+                  Don't have an account? Create one
+                </button>
+              </div>
+            </form>
+          ) : (
+            <form onSubmit={handleRegister} className="space-y-4">
+              <Input
+                label="Full Name *"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="Enter your full name"
+                required
+              />
+              <Select
+                label="Account Type"
+                value={form.role}
+                onChange={(e) => setForm({ ...form, role: e.target.value })}
+                options={[
+                  { value: 'client', label: 'Client - Track my fitness journey' },
+                  { value: 'trainer', label: 'Trainer - Manage clients' }
+                ]}
+              />
+              <Input
+                label="Email Address *"
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                placeholder="Enter your email"
+                required
+              />
+              <Input
+                label="Phone Number"
+                type="tel"
+                value={form.phone}
+                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                placeholder="+1 (555) 123-4567"
+              />
+              <Input
+                label="Password *"
+                type="password"
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                placeholder="Create a password"
+                required
+              />
+              
+              <div className="flex flex-col gap-3">
+                <Button type="submit" className="w-full">
+                  Create Account
+                </Button>
+                <button 
+                  type="button" 
+                  onClick={() => setView("login")} 
+                  className="text-sm text-[var(--primary)] hover:underline transition-colors duration-200"
+                >
+                  Already have an account? Sign in
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* -------------------- Main App Shell -------------------- */
+function MainAppShell({ setRoute }: { setRoute: (r: "login" | "app") => void }) {
+  const { session, logout, getUser } = useAuth();
+  const me = session ? getUser(session.userId) : null;
+  const [page, setPage] = useState<string>("dashboard");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { push } = useToast();
+  const { settings } = useSettings();
+
+  useEffect(() => setPage("dashboard"), []);
+
+  const handleLogout = () => {
+    logout();
+    setRoute("login");
+  };
+
+  const navItems = me?.role === "trainer" 
+    ? ["dashboard", "clients", "workouts", "progress", "stats", "meals", "chat", "settings"] 
+    : ["dashboard", "workouts", "meals", "progress", "stats", "chat", "settings"];
+
+  const getPageIcon = (pageName: string) => {
+    const icons: { [key: string]: string } = {
+      dashboard: "📊",
+      clients: "👥",
+      workouts: "💪",
+      progress: "📈",
+      stats: "📋",
+      meals: "🍽️",
+      chat: "💬",
+      settings: "⚙️"
+    };
+    return icons[pageName] || "📄";
+  };
+
+  const renderPage = () => {
+    switch (page) {
+      case "dashboard": return <DashboardPage />;
+      case "clients": return <ClientsPage />;
+      case "workouts": return <WorkoutsPage />;
+      case "progress": return <ProgressPage />;
+      case "stats": return <StatsPage />;
+      case "settings": return <SettingsPage />;
+      case "meals": return <MealsPage />;
+      case "chat": return <ChatPage />;
+      default: return <DashboardPage />;
+    }
+  };
+
+  return (
+    <div className="h-screen w-screen flex overflow-hidden bg-[var(--background)] text-[var(--foreground)]">
+      <aside className={`fixed inset-y-0 left-0 z-40 w-64 bg-[var(--card)] border-r border-[var(--border)] shadow-lg transform transition-transform duration-300 ease-in-out ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:static md:translate-x-0 md:flex md:flex-col`}>
+        <div className="flex items-center gap-3 p-4 border-b border-[var(--border)]">
+          <LogoPlaceholder size={48} />
+          <div>
+            <div className="font-bold text-lg text-[var(--card-foreground)]">FitnessPro</div>
+            <div className="text-xs text-[var(--muted-foreground)]">
+              {me?.role ? `${me.role.charAt(0).toUpperCase() + me.role.slice(1)} Portal` : "Portal"}
+            </div>
+          </div>
+        </div>
+        <nav className={`flex flex-col gap-1 ${settings.compact ? 'p-2' : 'p-4'} flex-1`}>
+          {navItems.map((p) => (
+            <button 
+              key={p} 
+              onClick={() => { setPage(p); setSidebarOpen(false); }} 
+              className={`flex items-center gap-3 text-left px-3 py-2 rounded-lg transition-all duration-200 ease-in-out hover:scale-105 ${
+                page === p 
+                  ? "bg-[var(--primary)] text-white shadow-md" 
+                  : "hover:bg-[var(--secondary)] text-[var(--card-foreground)]"
+              }`}
+            >
+              <span className="text-lg">{getPageIcon(p)}</span>
+              <span className="font-medium">{p.charAt(0).toUpperCase() + p.slice(1)}</span>
+            </button>
+          ))}
+        </nav>
+        
+        <div className="p-4 border-t border-[var(--border)]">
+          <div className="text-xs text-[var(--muted-foreground)] text-center">
+            FitnessPro v1.0
+          </div>
+        </div>
+      </aside>
+
+      {sidebarOpen && <div className="fixed inset-0 bg-black/50 md:hidden z-30" onClick={() => setSidebarOpen(false)} />}
+
+      <div className="flex-1 flex flex-col overflow-hidden min-h-screen">
+        <TopBar 
+          title={page.charAt(0).toUpperCase() + page.slice(1)} 
+          onLogout={handleLogout} 
+          onToggleSidebar={() => setSidebarOpen((s) => !s)} 
+        />
+        <div className={`flex-1 overflow-y-auto transition-all duration-300 ease-in-out ${settings.compact ? 'p-3' : 'p-6'} ${settings.animations ? 'animate-fade-in' : ''}`}>
+          {renderPage()}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* -------------------- App (root) -------------------- */
+export default function App() {
+  const [loaded, setLoaded] = useState(false);
+  const [route, setRoute] = useState<"loading" | "login" | "app">("loading");
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setLoaded(true);
+      setRoute("login");
+    }, 700);
+    return () => clearTimeout(t);
+  }, []);
+
+  return (
+    <SettingsProvider>
+      <AuthProvider>
+        <DataProvider>
+          <ToastProvider>
+            <div className="h-screen w-screen flex flex-col font-sans transition-colors duration-300 overflow-hidden">
+              {route === "loading" && <LoadingScreen />}
+              {route === "login" && <LoginPage onSuccess={() => setRoute("app")} />}
+              {route === "app" && <MainAppShell setRoute={(r) => setRoute(r)} />}
+            </div>
+          </ToastProvider>
+        </DataProvider>
+      </AuthProvider>
+    </SettingsProvider>
+  );
+}
