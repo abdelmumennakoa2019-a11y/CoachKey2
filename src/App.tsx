@@ -8,7 +8,7 @@ import React, {
 } from "react";
 import SettingsPanel from './settings';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
-import type { User, Workout, Meal, Message, ProgressEntry, AppSettings, Toast, ValidationError } from './types';
+import type { User, Workout, Meal, Message, ProgressEntry, AppSettings, Toast, ValidationError, UserRole } from './types';
 import { validateData, userRegistrationSchema, clientCreationSchema, workoutSchema, mealSchema, progressSchema, messageSchema, getPasswordStrength, sanitizeString, sanitizeNumber } from './utils/validation';
 import { db } from './services/database';
 import { firebaseAuth } from './services/firebase';
@@ -1044,7 +1044,7 @@ function RegisterPage({ onRegister, onShowLogin }: { onRegister: (user: User) =>
     password: "",
     confirmPassword: "",
     phone: "",
-    role: "client" as "client" | "trainer"
+    role: "client" as UserRole
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
