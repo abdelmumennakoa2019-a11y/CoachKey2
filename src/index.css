@@ -1,28 +1,35 @@
-/* Global Styles */
+/* Global Styles - These styles apply to the entire app and set up the foundation */
+/* We're importing a nice, modern font that looks good on all devices */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
+/* Reset all elements to use border-box sizing - makes layout calculations much easier */
 * {
   box-sizing: border-box;
 }
 
+/* Set up the basic page structure and typography */
 html, body {
-  margin: 0;
-  padding: 0;
+  margin: 0;    /* Remove default browser margins */
+  padding: 0;   /* Remove default browser padding */
+  /* Use our nice font with fallbacks in case it doesn't load */
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;      /* Make fonts look crisp on Mac/iOS */
+  -moz-osx-font-smoothing: grayscale;       /* Make fonts look crisp on Firefox */
+  line-height: 1.5;                         /* Comfortable line spacing for reading */
 }
 
+/* Make our app take up the full screen without scrollbars */
 #root {
   width: 100vw;
   height: 100vh;
   overflow: hidden;
 }
 
-/* Animations */
+/* Custom Animations - These make the app feel smooth and responsive */
+
+/* Fade in animation - elements gently appear */
 @keyframes fade-in {
   from { 
     opacity: 0; 
@@ -34,10 +41,12 @@ html, body {
   }
 }
 
+/* CSS class to apply fade-in animation */
 .animate-fade-in {
   animation: fade-in 0.3s ease-out;
 }
 
+/* Slide down animation - for dropdowns and notifications */
 @keyframes slide-down {
   from { 
     opacity: 0; 
@@ -49,10 +58,12 @@ html, body {
   }
 }
 
+/* CSS class to apply slide-down animation */
 .animate-slide-down {
   animation: slide-down 0.3s ease-out;
 }
 
+/* Slide up animation - for modals and pop-ups */
 @keyframes slide-up {
   from { 
     opacity: 0; 
@@ -64,10 +75,12 @@ html, body {
   }
 }
 
+/* CSS class to apply slide-up animation */
 .animate-slide-up {
   animation: slide-up 0.3s ease-out;
 }
 
+/* Toast notification animation - for success/error messages */
 @keyframes toast-in {
   from { 
     opacity: 0; 
@@ -79,10 +92,12 @@ html, body {
   }
 }
 
+/* CSS class to apply toast animation */
 .animate-toast-in {
   animation: toast-in 0.3s ease-out forwards;
 }
 
+/* Loading bar animation - shows progress */
 @keyframes loading-bar {
   0% { 
     width: 0%; 
@@ -92,29 +107,34 @@ html, body {
   }
 }
 
+/* CSS class to apply loading bar animation */
 .animate-loading-bar {
   animation: loading-bar 1.5s ease-in-out infinite;
 }
 
-/* Scrollbar Styling */
+/* Custom Scrollbar Styling - Makes scrollbars look modern and unobtrusive */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 6px;    /* Thin vertical scrollbar */
+  height: 6px;   /* Thin horizontal scrollbar */
 }
 
+/* The track (background) of the scrollbar */
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 
+/* The draggable part of the scrollbar */
 ::-webkit-scrollbar-thumb {
   background: rgba(0, 0, 0, 0.2);
   border-radius: 3px;
 }
 
+/* Scrollbar thumb when you hover over it */
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.3);
 }
 
+/* Dark theme scrollbar styling */
 .dark ::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.2);
 }
@@ -123,7 +143,8 @@ html, body {
   background: rgba(255, 255, 255, 0.3);
 }
 
-/* Focus styles */
+/* Accessibility - Focus styles for keyboard navigation */
+/* When someone uses Tab to navigate, these elements get a visible outline */
 button:focus-visible,
 input:focus-visible,
 select:focus-visible,
@@ -132,7 +153,7 @@ textarea:focus-visible {
   outline-offset: 2px;
 }
 
-/* Compact mode adjustments */
+/* Compact mode - Reduces spacing when users prefer a denser interface */
 .compact .card {
   padding: 0.75rem;
 }
@@ -141,7 +162,8 @@ textarea:focus-visible {
   padding: 0.5rem 0.75rem;
 }
 
-/* Animation disable for reduced motion */
+/* Accessibility - Respect users who prefer reduced motion */
+/* Some people get motion sick from animations, so we turn them off for them */
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-in,
   .animate-slide-down,
@@ -151,6 +173,7 @@ textarea:focus-visible {
     animation: none;
   }
   
+  /* Make all transitions super fast instead of removing them entirely */
   * {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
@@ -158,14 +181,15 @@ textarea:focus-visible {
   }
 }
 
-/* Print styles */
+/* Print styles - Hide certain elements when someone prints the page */
 @media print {
   .no-print {
     display: none !important;
   }
 }
 
-/* High contrast mode support */
+/* Accessibility - High contrast mode support */
+/* Some users need extra contrast to see clearly */
 @media (prefers-contrast: high) {
   button, input, select, textarea {
     border: 2px solid;

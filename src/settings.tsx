@@ -1,49 +1,54 @@
-// settings.tsx
+// Settings Panel Component
+// This is a comprehensive settings interface that lets users customize their app experience
+// It handles themes, colors, timezone, and other preferences
 import React, { useEffect, useMemo, useState } from 'react'
 
-// SettingsPanel — standalone, easy to connect to your app
-// Usage (simple): import SettingsPanel from './settings'
-// If you already have a SettingsContext with { settings, update }, pass it via the `external` prop:
-// <SettingsPanel external={{ settings, update }} />
+// This defines what settings our app can remember
+// Think of it like a preferences file that saves how you like things set up
 
 type AppSettings = {
-  theme: 'auto' | 'light' | 'dark'
-  primary: string // hex color or token
-  compact: boolean
-  animations: boolean
-  timezone: string
-  telemetry: boolean
+  theme: 'auto' | 'light' | 'dark'  // What theme the user prefers
+  primary: string                    // Their favorite color for buttons and highlights
+  compact: boolean                   // Whether they want a more condensed interface
+  animations: boolean                // Whether they want smooth transitions and effects
+  timezone: string                   // Their local timezone for accurate time display
+  telemetry: boolean                // Whether they're okay with anonymous usage data
 }
 
+// Default settings - what new users start with
 const DEFAULTS: AppSettings = {
-  theme: 'auto',
-  primary: '#2563eb', // blue-600
+  theme: 'auto',        // Automatically match their device's light/dark preference
+  primary: '#2563eb',   // Nice blue color
   compact: false,
   animations: true,
-  timezone: typeof Intl !== 'undefined' ? (Intl as any).DateTimeFormat?.()?.resolvedOptions?.().timeZone || 'UTC' : 'UTC',
+  timezone: typeof Intl !== 'undefined' ? (Intl as any).DateTimeFormat?.()?.resolvedOptions?.().timeZone || 'UTC' : 'UTC', // Try to detect their timezone
   telemetry: true,
 }
 
+// Where we save settings so they persist between app sessions
 const STORAGE_KEY = 'app-settings-v1'
 
+// Load saved settings from the browser's storage
 function loadSettings(): AppSettings {
   try {
-    if (typeof window === 'undefined') return DEFAULTS
+    if (typeof window === 'undefined') return DEFAULTS // Server-side safety check
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return DEFAULTS
-    return { ...DEFAULTS, ...(JSON.parse(raw) || {}) }
+    if (!raw) return DEFAULTS // No saved settings yet
+    return { ...DEFAULTS, ...(JSON.parse(raw) || {}) } // Merge saved settings with defaults
   } catch (e) {
-    return DEFAULTS
+    return DEFAULTS // If something goes wrong, use defaults
   }
 }
+
+// Save settings to browser storage
 function saveSettings(s: AppSettings) {
   if (typeof window === 'undefined') return
   localStorage.setItem(STORAGE_KEY, JSON.stringify(s))
 }
 
+// Check if a timezone string is valid (some browsers are picky about this)
 function isValidTimeZone(tz: string) {
   try {
-    // will throw on invalid timeZone in many engines
     Intl.DateTimeFormat(undefined, { timeZone: tz }).format()
     return true
   } catch {
@@ -51,6 +56,7 @@ function isValidTimeZone(tz: string) {
   }
 }
 
+// Common timezones that most people use - makes selection easier
 const COMMON_TIMEZONES = [
   'UTC',
   'Europe/London',
@@ -65,6 +71,7 @@ const COMMON_TIMEZONES = [
   'Australia/Sydney',
 ]
 
+// Pre-defined color options with nice names
 const COLOR_TOKENS: { [k: string]: string } = {
   'blue-600': '#2563eb',
   'indigo-600': '#4f46e5',
@@ -73,25 +80,29 @@ const COLOR_TOKENS: { [k: string]: string } = {
   'teal-600': '#0d9488',
 }
 
+// Main Settings Panel Component
+// This creates the entire settings interface that users interact with
 export default function SettingsPanel({
   external,
   onSave,
 }: {
-  // external is optional: { settings, update }
+  // Optional: if you want to connect this to external state management
   external?: { settings: Partial<AppSettings>; update: (patch: Partial<AppSettings>) => void }
   onSave?: (s: AppSettings) => void
 }) {
+  // Internal state for managing settings while user is making changes
   const [internal, setInternal] = useState<AppSettings>(() => loadSettings())
   const [detectedTZ, setDetectedTZ] = useState<string>(DEFAULTS.timezone)
+  // State for showing legal document modals
   const [tosOpen, setTosOpen] = useState(false)
   const [ppOpen, setPpOpen] = useState(false)
 
-  // If external provided, prefer that as initial — but we still keep local copy so the panel is portable
+  // When the component first loads, sync with external settings if provided
   useEffect(() => {
     if (external && external.settings) {
       setInternal((s) => ({ ...s, ...(external.settings as any) }))
     }
-    // detect timezone on mount
+    // Try to automatically detect the user's timezone
     if (typeof Intl !== 'undefined') {
       try {
         const tz = (Intl as any).DateTimeFormat()?.resolvedOptions?.().timeZone || DEFAULTS.timezone
@@ -101,6 +112,7 @@ export default function SettingsPanel({
     }
   }, [external])
 
+  // Show a preview of what time looks like in the selected timezone
   const previewTime = useMemo(() => {
     try {
       const opt: any = { timeZone: internal.timezone }
@@ -111,8 +123,8 @@ export default function SettingsPanel({
     }
   }, [internal.timezone])
 
+  // Function to automatically detect user's timezone
   const detectTimezone = async () => {
-    // best-effort: use Intl resolvedOptions
     try {
       const tz = (Intl as any).DateTimeFormat()?.resolvedOptions?.().timeZone || 'UTC'
       setInternal((s) => ({ ...s, timezone: tz }))
@@ -122,28 +134,30 @@ export default function SettingsPanel({
     }
   }
 
+  // Functions to change the primary color
   const changePrimaryHex = (hex: string) => setInternal((s) => ({ ...s, primary: hex }))
   const changePrimaryToken = (token: string) => changePrimaryHex(COLOR_TOKENS[token] || token)
 
+  // Save all settings changes
   const handleSave = () => {
-    // push into external context if provided
     if (external && external.update) {
+      // If connected to external state management, update that
       external.update(internal)
     } else {
-      // save to localStorage only if no external
+      // Otherwise, save to browser storage
       saveSettings(internal)
     }
     if (onSave) onSave(internal)
   }
 
+  // Reset all settings back to defaults
   const handleReset = () => {
     setInternal(DEFAULTS)
-    // remove from storage
     if (typeof localStorage !== 'undefined') localStorage.removeItem(STORAGE_KEY)
     if (external && external.update) external.update(DEFAULTS)
   }
 
-  // attempt to get list of timezones via Intl.supportedValuesOf if available
+  // Get a comprehensive list of timezones if the browser supports it
   const timezoneCandidates: string[] = useMemo(() => {
     try {
       const fn = (Intl as any).supportedValuesOf
@@ -154,6 +168,7 @@ export default function SettingsPanel({
 
   return (
     <div className="bg-white p-6 rounded-lg shadow space-y-6 dark:bg-[var(--card)] dark:shadow-xl">
+      {/* Settings panel header with save/reset buttons */}
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold dark:text-[var(--card-foreground)]">Settings</h3>
@@ -165,7 +180,7 @@ export default function SettingsPanel({
         </div>
       </div>
 
-      {/* Theme */}
+      {/* Theme selection - Auto, Light, or Dark */}
       <div className="flex items-center justify-between">
         <div>
           <div className="font-medium dark:text-[var(--foreground)]">Theme</div>
@@ -178,17 +193,19 @@ export default function SettingsPanel({
         </div>
       </div>
 
-      {/* Primary color */}
+      {/* Primary color picker - preset colors plus custom hex input */}
       <div>
         <div className="font-medium dark:text-[var(--foreground)]">Primary color</div>
         <div className="text-xs text-gray-500 mb-2 dark:text-[var(--muted-foreground)]">Pick a preset or provide a custom hex</div>
         <div className="flex items-center gap-3">
+          {/* Preset color buttons */}
           {Object.keys(COLOR_TOKENS).map((t) => (
             <button key={t} onClick={() => changePrimaryToken(t)} className={`p-2 rounded-md ring-offset-2 hover:scale-110 transition-transform duration-200 ${internal.primary === COLOR_TOKENS[t] ? 'ring-2' : ''} dark:ring-offset-[var(--card)]`} title={t}>
               <div style={{ width: 28, height: 20, borderRadius: 6, background: COLOR_TOKENS[t] }} />
             </button>
           ))}
 
+          {/* Custom color picker and hex input */}
           <div className="flex items-center gap-2">
             <input type="color" value={internal.primary} onChange={(e) => changePrimaryHex(e.target.value)} className="w-10 h-8 p-0 border-0 hover:scale-105 transition-transform duration-200" />
             <input value={internal.primary} onChange={(e) => changePrimaryHex(e.target.value)} className="p-2 border rounded hover:scale-105 transition-transform duration-200 dark:border-[var(--input)] dark:bg-[var(--secondary)] dark:text-[var(--secondary-foreground)]" />
@@ -196,7 +213,7 @@ export default function SettingsPanel({
         </div>
       </div>
 
-      {/* Compact / Animations toggles */}
+      {/* UI preference toggles - Compact mode and Animations */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="flex items-center justify-between">
           <div>
@@ -215,7 +232,7 @@ export default function SettingsPanel({
         </div>
       </div>
 
-      {/* Timezone & Date/Time */}
+      {/* Timezone selection with auto-detection */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <div>
@@ -235,12 +252,14 @@ export default function SettingsPanel({
           </div>
         </div>
 
+        {/* Preview of current time in selected timezone */}
         <div>
           <div className="font-medium dark:text-[var(--foreground)]">Preview local time</div>
           <div className="text-sm text-gray-500 dark:text-[var(--muted-foreground)]">Timezone: {internal.timezone} — {previewTime}</div>
         </div>
       </div>
 
+      {/* Additional settings like telemetry and beta features */}
       <div>
         <div className="font-medium dark:text-[var(--foreground)]">Other</div>
         <div className="text-xs text-gray-500 dark:text-[var(--muted-foreground)]">Additional toggles you might find useful</div>
@@ -263,7 +282,7 @@ export default function SettingsPanel({
         </div>
       </div>
 
-      {/* Legal Documents */}
+      {/* Legal document access buttons */}
       <div>
         <div className="font-medium dark:text-[var(--foreground)]">Legal</div>
         <div className="text-xs text-gray-500 mb-2 dark:text-[var(--muted-foreground)]">View our legal documents</div>
@@ -273,7 +292,7 @@ export default function SettingsPanel({
         </div>
       </div>
 
-      {/* TOS Modal */}
+      {/* Terms of Service Modal - shows when user clicks TOS button */}
       {tosOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 animate-fade-in" onClick={() => setTosOpen(false)}>
           <div className="bg-white p-6 rounded-lg shadow-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto transition-all duration-300 ease-in-out scale-95 dark:bg-[var(--card)]" onClick={(e) => e.stopPropagation()}>
@@ -358,7 +377,7 @@ Contact Us: For questions, contact support@fitnesspro.app
         </div>
       )}
 
-      {/* Privacy Policy Modal */}
+      {/* Privacy Policy Modal - shows when user clicks Privacy Policy button */}
       {ppOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 animate-fade-in" onClick={() => setPpOpen(false)}>
           <div className="bg-white p-6 rounded-lg shadow-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto transition-all duration-300 ease-in-out scale-95 dark:bg-[var(--card)]" onClick={(e) => e.stopPropagation()}>
