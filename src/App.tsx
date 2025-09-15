@@ -7,12 +7,9 @@ import React, {
   useMemo,
   useState,
 } from "react";
-// This is our main App component - think of it as the control center for our entire fitness platform
-// It handles user authentication, navigation between different sections, and manages the overall app state
 import SettingsPanel from './settings';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 
-// These are all the different sections/pages of our app
 /**
  * Complete Fitness Dashboard MVP
  * Features: Dashboard, Clients, Workouts, Progress, Stats, Settings, Meals, Chat
@@ -132,14 +129,12 @@ function ToastProvider({ children }: { children: React.ReactNode }) {
       setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), toast.ttl);
     }
     return id;
-      {/* Chat header */}
   }, []);
   const remove = useCallback((id: string) => setToasts((t) => t.filter((x) => x.id !== id)), []);
 
   return (
     <ToastContext.Provider value={{ push, remove }}>
       {children}
-      {/* Messages area */}
       <div className="fixed bottom-6 right-6 flex flex-col gap-3 z-50">
         {toasts.map((t) => (
           <div
@@ -155,7 +150,6 @@ function ToastProvider({ children }: { children: React.ReactNode }) {
               </button>
             </div>
           </div>
-            {/* List of exercises with input fields */}
         ))}
       </div>
     </ToastContext.Provider>
@@ -456,7 +450,6 @@ function TopBar({ title, onLogout, onToggleSidebar }: { title: string; onLogout:
         </button>
         <h1 className="text-2xl font-bold text-[var(--foreground)]">{title}</h1>
       </div>
-      {/* List of all workouts */}
       <div className="flex items-center gap-3">
         <div className="text-sm text-[var(--muted-foreground)]">{user ? `${user.name} (${user.role})` : "Not signed in"}</div>
         {session && (
@@ -471,7 +464,6 @@ function TopBar({ title, onLogout, onToggleSidebar }: { title: string; onLogout:
           </button>
         )}
       </div>
-        {/* Toggle between login and register modes */}
     </header>
   );
 }
@@ -815,12 +807,10 @@ function ClientsPage() {
           <div className="text-4xl mb-4">🚫</div>
           <div className="text-[var(--muted-foreground)]">This page is only available to trainers</div>
         </div>
-  // If no one is logged in, show the login/register screen
       </Card>
     );
   }
 
-  // Main app interface - this is what users see after logging in
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -1110,7 +1100,6 @@ function WorkoutsPage() {
             </div>
           )}
 
-          {/* Submit button - text changes based on login/register mode */}
           <div className="flex gap-3 pt-4">
             <Button onClick={handleCreateWorkout} className="flex-1">Create Workout</Button>
             <Button variant="secondary" onClick={() => setShowCreateWorkout(false)} className="flex-1">Cancel</Button>
@@ -1854,7 +1843,6 @@ function MealsPage() {
         ))}
       </div>
 
-      {/* Add/Edit workout modal */}
       {/* Recent Meals */}
       {meals.length > 0 && (
         <Card title="Recent Meals">
@@ -1960,21 +1948,17 @@ function ChatPage() {
   const { push } = useToast();
   const [newMessage, setNewMessage] = useState('');
   const [selectedContact, setSelectedContact] = useState<string | null>(null);
-  // Send a new message
 
   const user = session ? getUser(session.userId) : null;
   const messages = appData.messages || [];
 
   // Get potential contacts (trainer-client relationships)
-  // Handle form submission - either login or register based on current mode
   const contacts = useMemo(() => {
     if (!user) return [];
     
     if (user.role === 'trainer') {
-      // Login mode - just need email and password
       return users.filter(u => u.role === 'client' && u.trainerId === user.id);
     } else {
-      // Register mode - need to validate passwords match
       const trainer = users.find(u => u.id === user.trainerId);
       return trainer ? [trainer] : [];
     }
@@ -2218,8 +2202,6 @@ function LoginPage({ onSuccess }: { onSuccess: () => void }) {
           </div>
         </div>
 
-        {/* Nutrition breakdown pie chart */}
-        {/* Login/Register form */}
         <div className={`bg-[var(--card)] rounded-lg shadow-xl border border-[var(--border)] transition-all duration-300 ease-in-out ${settings.compact ? 'p-4' : 'p-8'} ${settings.animations ? 'animate-slide-up' : ''}`}>
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-[var(--card-foreground)]">
@@ -2392,7 +2374,6 @@ function MainAppShell({ setRoute }: { setRoute: (r: "login" | "app") => void }) 
         </div>
         <nav className={`flex flex-col gap-1 ${settings.compact ? 'p-2' : 'p-4'} flex-1`}>
           {navItems.map((p) => (
-      {/* Main content area - this changes based on what section the user selected */}
             <button 
               key={p} 
               onClick={() => { setPage(p); setSidebarOpen(false); }} 
@@ -2432,10 +2413,7 @@ function MainAppShell({ setRoute }: { setRoute: (r: "login" | "app") => void }) 
 }
 
 /* -------------------- App (root) -------------------- */
-// This is our main App function - it's like the brain of our fitness platform
 export default function App() {
-  // These are our "state variables" - they remember information while the app is running
-  // Think of them like sticky notes that the app uses to remember things
   const [loaded, setLoaded] = useState(false);
   const [route, setRoute] = useState<"loading" | "login" | "app">("loading");
 
@@ -2447,7 +2425,6 @@ export default function App() {
     return () => clearTimeout(t);
   }, []);
 
-  // This function handles when someone tries to log in
   return (
     <SettingsProvider>
       <AuthProvider>
