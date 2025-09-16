@@ -187,7 +187,7 @@ function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<AppSettings>(saved);
   const [effectiveTheme, setEffectiveTheme] = useState<'light' | 'dark'>('light');
 
-  useEffect(() => save("settings", settings), [settings]);
+  useEffect(() => { save("settings", settings); }, [settings]);
 
   useEffect(() => {
     if (settings.theme !== 'auto') {
@@ -2425,7 +2425,7 @@ export default function App() {
     return () => clearTimeout(t);
   }, []);
 
-  return (
+  useEffect(() => { save("userData", userData); }, [userData]);
     <SettingsProvider>
       <AuthProvider>
         <DataProvider>
